@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        html,body, .map{ width: 100%; height: 100%; overflow: hidden; margin: 0; padding: 0; }
+        .mBox{ width: 500px; background-color: #fff; border-radius: 10px; }
+        .mHead, .mBody{ margin: 0 10px; position: relative; }
+        .mTitle{ font-size: 20px; line-height: 60px; border-bottom: 1px solid #eee; color: #666; }
+        .mClose{ font-size: 40px; line-height: 60px; padding: 0 10px; position: absolute; right: 0; top: 50%; transform: translateY(-50%); color: #666; }
+        .mBody{ padding: 10px 0; }
+        .mContentHead{ font-size: 16px; color: #666; line-height: 34px; background-color: #eee; padding: 0 10px; border-radius: 6px 6px 0 0; margin: 4px 0 0 0; border: 1px solid #ccc; }
+        .mContentBody{ font-size: 12px; color: #999; line-height: 24px; padding: 10px; border: 1px solid #ccc; border-top: 0; border-radius: 0 0 6px 6px; display: none; }
+        .mContentBody.active{ display: block; }
+        .mContentBody img{ width: 100%; }
+        .mFoot{ height: 10px; position: relative;}
+        .mFoot::after{ content: ''; display: block; width: 0; height: 0; border-style: solid; border-width: 10px; border-color: #fff transparent transparent transparent; position: absolute; left: 50%; bottom: -20px; transform: translateX(-50%);}
+
+        .myIcon{ width: 20px; height: 20px; background-position: center; background-repeat: no-repeat; background-size: 100% 100%; }
+        .myText{ color: #fff; white-space: nowrap; text-align: center; position: absolute; left: 50%; transform: translateX(-50%); background-color: #464646; border-radius: 4px; padding: 4px 6px; box-shadow: 0px 0px 5px #d2d2d2; margin-top: 6px; }
+        .myText p{ margin: 0; }
+        .myText p:nth-child(1){ font-size: 16px; }
+        .myText p:nth-child(2){ font-size: 12px; }
+
+        .guide{ width: 240px; height: 40px; position: absolute; left: 0; bottom: 0; overflow: hidden; }
+        .guideBtn{ position: absolute; left: 0; bottom: 0; background-color: #333; border: none; font-size: 18px; color: #fff; text-shadow: -1px -1px #000; box-shadow: 0px 0px 10px #fff inset; white-space: pre-wrap; width: 100%; line-height: 40px; outline: none; z-index: 2;  }
+        .groups, .schools{ width: 240px; position: absolute; left: 0; top: 0; background-color: #525252; box-shadow: 0px 0px 20px #000; border-radius: 0 10px 0 0; }
+        .groups{ z-index: 1; }
+        .schools{ z-index: 0; }
+        .school{ display: none; }
+        .groupItem, .schoolItem{ user-select: none; cursor: pointer; background-repeat: no-repeat; background-position: left center; text-shadow: -1px -1px #000; white-space: nowrap; margin: 4px 10px; }
+        .groupItem{ font-size: 20px; line-height: 40px; background-size: 30px 30px; padding-left: 40px; color: #fff; }
+        .schoolItem{ font-size: 14px; line-height: 30px; background-size: 20px 20px; padding-left: 30px; color: #fff; }
+        @media screen and (max-width:1024px) {
+            .mBox{ width: 320px; }
+        }
+    </style>
+    <title>高德地图</title>
+</head>
+<body>
+    <div class="map" id="map"></div>
+    <div class="guide" id="guide">
+        <button class="guideBtn">展开集团列表</button>
+        <div class="groups">
+        </div>
+        <div class="schools">
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=104960704b4016ba26b926b9a8cfaa0a"></script> 
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        $.ajax({
+            url: 'js/data.json',
+            type: 'GET',
+            dataType: 'JSON',
+            success: function(data){
+                for (let i = 0; i < data.length; i++) {
+                    const group = data[i];
+                    let index = i;
+                    var groupItem = creatItem(group,"groupItem",index);
+                    const schools = data[i].school;
+                    for (let j = 0; j < schools.length; j++) {
+                        const school = schools[j];
+                        var schoolItem = creatItem(school,"schoolItem",index);
+                        createMarker(school,group);
+                    }
+                }
+                $('.schools').on('click','.schoolItem',data,schoolHandle);
+            }
+        })
+        
+        //定义行政区域
+        var city = '拱墅区';
+        //定义地图缩放比例
+        var iZoom = 13;
+        //移动端判断
+        let isMobile = /Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent);
+        
+        if(isMobile) {
+            iZoom = 12;
+        }
+
+        //地图初始化
+        var map = new AMap.Map('map',{
+            viewMode: '3D',
+            mapStyle: 'amap://styles/41a39c02dd4b24b03c1bc489534ccf10'
+        });
+        
+        
+        
+        //覆盖物Marker
+        var mIndex = 0;
+        function createMarker(item,parent){
+            mIndex += 1;
+            var markerContent = '<div class="myIcon" style="background-image: url('+item.icon+')"></div>'+
+            '<div class="myText" style="display: none">'+'<p>'+parent.name+'</p>'+'<p>'+item.name+'</p>'+'</div>';
+            var marker = new AMap.Marker({
+                position: new AMap.LngLat(item.lat,item.lng),
+                content: markerContent,
+                title: item.name,
+                offset: new AMap.Pixel(-10,-10),
+                zIndex: mIndex
+            });
+            var infoWindow = new AMap.InfoWindow({
+                isCustom: true,
+                content: infoContent(item),
+                offset: new AMap.Pixel(0, -10),
+                showShadow: true
+            })
+            //覆盖物Marker点击事件
+            AMap.event.addListener(marker,'click',function(){
+                var mActive = infoWindow.getContent().querySelector('.mContentBody ');
+                mActive.classList.add('active');
+                guideHide();
+                infoWindow.open(map,marker.getPosition());
+            })
+            map.add(marker);
+        }
+        //地图放大缩小事件
+        AMap.event.addListener(map,'zoomchange',function(){
+            var mZoom = map.getZoom();
+            if(mZoom > 16){
+                $('.myIcon').animate({width:'30px',height:'30px'});
+                $('.myText').css({display:'block'});
+            }else{
+                $('.myIcon').animate({width:'20px',height:'20px'});
+                $('.myText').css({display:'none'});
+            }
+        })
+        //地图点击事件
+        AMap.event.addListener(map,'click',function(){
+            guideHide();
+        })
+        
+        function infoContent(item){
+            var mContent = '';
+            // localRange   户籍儿童教育服务区
+            // fieldRange   随迁子女教育服务区
+            // rise         直升小学
+            // tips         温馨提示
+            // phone        电话
+            // images       学校区域图
+
+            if(item.images != ''){
+                mContent += '<div class="mContentHead" onclick="mFn()">学校区域图</div>' + 
+                '<div class="mContentBody"><img src="'+item.images+'"/></div>'
+            }
+            if(item.localRange != ''){
+                mContent += '<div class="mContentHead" onclick="mFn()">户籍儿童教育服务区</div>' + 
+                '<div class="mContentBody">'+item.localRange+'</div>'
+            }
+            if(item.fieldRange != ''){
+                mContent += '<div class="mContentHead" onclick="mFn()">随迁子女教育服务区</div>' + 
+                '<div class="mContentBody">'+item.fieldRange+'</div>'
+            }
+            if(item.rise != ''){
+                mContent += '<div class="mContentHead" onclick="mFn()">直升小学</div>' + 
+                '<div class="mContentBody">'+item.rise+'</div>'
+            }
+            if(item.phone != ''){
+                mContent += '<div class="mContentHead" onclick="mFn()">电话</div>' + 
+                '<div class="mContentBody">'+item.phone+'</div>'
+            }
+            if(item.tips != ''){
+                mContent += '<div class="mContentHead" onclick="mFn()">温馨提示</div>' + 
+                '<div class="mContentBody">'+item.tips+'</div>'
+            }
+
+            var info = document.createElement('div');
+            info.className = 'mBox';
+            
+            var head = document.createElement('div');
+            var title = document.createElement('div');
+            var close = document.createElement('span');
+
+            head.className = 'mHead';
+            title.className = 'mTitle';
+            close.className = 'mClose';
+            close.innerText = '×';
+
+            title.innerText = item.name;
+            close.onclick = closeInfoWindow;
+
+            head.appendChild(title);
+            head.appendChild(close);
+            info.appendChild(head);
+
+            var body = document.createElement('div');
+
+            body.className = 'mBody';
+            body.innerHTML = mContent;
+            info.appendChild(body);
+
+            var foot = document.createElement('div');
+            foot.className = 'mFoot';
+            info.appendChild(foot);
+
+            return info;
+        }
+        //信息窗口关闭
+        function closeInfoWindow() {
+            map.clearInfoWindow();
+        }
+        //信息窗口栏目切换
+        function mFn(){
+            var event = window.event;
+            var target = event.target;
+            $('.mContentBody').removeClass('active');
+            $(target).next('.mContentBody').addClass('active');
+        }
+        //引导层条目添加
+        var creatItem = function(item,itemClass,index){
+            var guideItem = '<div class='+itemClass+' style="background-image: url('+item.icon+')">'+item.name+'</div>';
+            var school = '<div class="school"></div>';
+            if(itemClass == "groupItem"){
+                $('.groups').append(guideItem);
+                $('.schools').append(school);
+            }else{
+                $('.school').eq(index).append(guideItem);
+            }
+        }
+        //集团点击
+        $('.groups').on('click','.groupItem',function(){
+            var n = $(this).index();
+            $('.guide').removeClass('groupActive').addClass('schoolActive');
+            $('.guideBtn').text('返回集团列表');
+            $('.guide').animate({height: $('.school').eq(n).height()+40+'px'});
+            $('.groups').animate({opacity: '0',zIndex: '0'});
+            $('.schools').animate({opacity: '1',zIndex: '1'});
+            $('.school').eq(n).show().siblings().hide();
+        })
+        //返回按钮点击
+        $('.guideBtn').on('click',function(){
+            if($('.guide').hasClass('schoolActive')){
+                $('.guide').removeClass('schoolActive').addClass('groupActive');
+                $('.guide').animate({height: $('.groups').height()+40+'px'});
+                $('.groups').animate({opacity: '1',zIndex: '1'});
+                $('.schools').animate({opacity: '0',zIndex: '0'});
+                this.innerText = '收起集团列表';
+            }else{
+                if($('.guide').hasClass('groupActive')){
+                    $('.guide').removeClass('groupActive');
+                    $('.guide').animate({height: '40px'});
+                    $('.groups').animate({opacity: '1',zIndex: '1'});
+                    $('.schools').animate({opacity: '0',zIndex: '0'});
+                    this.innerText = '展开集团列表';
+                }else{
+                    $('.guide').addClass('groupActive');
+                    $('.guide').animate({height: $('.groups').height()+40+'px'});
+                    $('.groups').animate({opacity: '1',zIndex: '1'});
+                    $('.schools').animate({opacity: '0',zIndex: '0'});
+                    this.innerText = '收起集团列表';
+                }
+            }
+        })
+
+        //学校点击
+        
+        function schoolHandle(e){
+            var pIndex = $(this).parent().index();
+            var cIndex = $(this).index();
+            var data = e.data[pIndex].school[cIndex];
+            map.setZoomAndCenter(19,new AMap.LngLat(data.lat,data.lng));
+            guideHide();
+        }
+        // 引导层隐藏
+        function guideHide(){
+            $('.guide').removeClass('schoolActive','groupActive');
+            $('.guide').animate({height: '40px'});
+            $('.groups').animate({opacity: '1',zIndex: '1'});
+            $('.schools').animate({opacity: '0',zIndex: '0'});
+            $('.guideBtn').text('展开集团列表');
+        }
+
+        
+        
+
+        //地图插件使用
+        //AMap.DistrictSearch - 行政区域查询
+        AMap.plugin(['AMap.DistrictSearch','AMap.ToolBar'],function(){
+            var district = new AMap.DistrictSearch({
+                //查询等级 - country:国家, province:省, city:市, district:区/县, biz_area:商圈
+                level: 'district',
+                //返回行政区的坐标点集合 - 默认值:base:不返回坐标点, all:返回坐标点
+                extensions: 'all'
+            });
+            //district.search() 根据关键字查询行政区或商圈信息
+            district.search(city,function(status,result){
+                var bounds = result.districtList[0].boundaries;
+                var polygons = [];
+                if(bounds){
+                    for (let i = 0; i < bounds.length; i++) {
+                        const boundsEle = bounds[i];
+                        var polygon = new AMap.Polygon({
+                            map: map,
+                            strokeWeight: 1,
+                            path: boundsEle,
+                            fillOpacity: 0.5,
+                            fillColor: '#000000',
+                            strokeColor: '#ff0000',
+                            strokeStyle: 'dashed'
+                        });
+                        polygons.push(polygon);
+                    }
+                }
+                map.setCity(city,function(){
+                    map.setFitView();
+                    map.setZoom(iZoom);
+                });
+            });
+            var toolbar = new AMap.ToolBar();
+            map.addControl(toolbar);
+        })
+    </script>
+</body>
+</html>
