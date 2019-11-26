@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+    *{ margin: 0; padding: 0; }
+    .container{ width: 100vw; height: 100vh; position: relative; overflow: hidden; background: gray; }
+    .bottom{ width: 100vw; position: absolute; bottom: 0; background: white; transition: all .5s cubic-bezier(0.165, 0.84, 0.44, 1); transform: translateY(calc(100% - 40px)); }
+    .bottom>h1{ text-align: center; line-height: 40px; }
+    .box{ max-height: 60vh; overflow-y:scroll ; }
+    .active{ transform: translateY(0); }
+    </style>
+    <title>AnimateCSS</title>
+</head>
+<body>
+    <div class="container">
+        <div class="bottom">
+            <h1>点击我弹出</h1>
+            <div class="box">
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容</p>
+                <p>这是隐藏内容1</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const
+            bottomBtn = document.querySelector('h1');
+            bottom = document.querySelector('.bottom');
+
+            let active = false;
+
+            bottomBtn.addEventListener('click', () => {
+                bottom.classList[active ? 'remove' : 'add']('active');
+                active = !active;
+            })
+    </script>
+</body>
+</html>
