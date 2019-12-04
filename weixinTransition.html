@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        *{ margin: 0; padding: 0; border: 0; }
+        .box{ width: 50vw; height: 20vh; background-color: red; transition: all 2s; }
+        .box.active{ transform: rotate(30deg); }
+    </style>
+    <title>微信Transition</title>
+</head>
+<body>
+    <div class="box" id="box"></div>
+
+    <script>
+        var box = document.querySelector('.box');
+        box.addEventListener('click',function(){
+            this.classList.add('active');
+        })
+    </script>
+</body>
+</html>

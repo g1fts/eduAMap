@@ -1,4 +1,15 @@
-var iData = null;
+var iData = null;   // 将 data.json 获取到的值提出来 方便调用
+var zoomDefault = 13;  // 初始缩放比例
+var iconSize = 4;   // Marker 图标初始大小
+var iconRate = 10; //缩放系数
+//移动端判断
+let isMobile = /Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent);
+
+if(isMobile) {
+    zoomDefault = 12;
+    iconSize = 6;
+    iconRate = 4;
+}
 
 $.ajax({
     url: './js/data.json',
@@ -20,15 +31,7 @@ $.ajax({
 
 //定义行政区域
 var city = '拱墅区';
-//定义地图缩放比例
-var iZoom = 13;
-//移动端判断
-let isMobile = /Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent);
 
-if(isMobile) {
-    iZoom = 12;
-}else{
-}
 //地图初始化
 var map = new AMap.Map('map',{
     viewMode: '3D',
@@ -65,7 +68,7 @@ AMap.plugin(['AMap.DistrictSearch','AMap.ToolBar'],function(){
         }
         map.setCity(city,function(){
             map.setFitView();
-            map.setZoom(iZoom);
+            map.setZoom(zoomDefault);
         });
     });
     var toolBar = new AMap.ToolBar();
@@ -86,7 +89,9 @@ function createMarker(item,parent){
     });
     //覆盖物Marker click 事件
     AMap.event.addListener(marker,'click',function(){
+        infoBoxHide();
         infoBoxContent(item);
+
         infoBoxShow();
     })
     //覆盖物Marker mouseover 事件
@@ -101,25 +106,12 @@ function createMarker(item,parent){
     map.add(marker);
 }
 //地图缩放
-var mZoomOld = null;
-var mZoomNew = null;
-AMap.event.addListener(map,'zoomstart',function(){
-    mZoomOld = map.getZoom();
-});
+var zoomNew = null;
 AMap.event.addListener(map,'zoomend',function(){
-    var iconSize = $('.myIcon>i').width();
-    var iconStep = 3;
-    var iconPlus = iconSize + iconStep;
-    var iconMinus = iconSize - iconStep;
-    mZoomNew = map.getZoom();
-    console.log(mZoomNew);
-    if(mZoomNew > mZoomOld){
-        console.log('放大！');
-        $('.myIcon>i').animate({ width: iconPlus + 'px', height: iconPlus + 'px', backgroudSize: iconPlus + 'px ' + iconPlus + 'px' });
-    }else if(mZoomNew < mZoomOld){
-        console.log('缩小！')
-        $('.myIcon>i').animate({ width: iconMinus + 'px', height: iconMinus + 'px', backgroudSize: iconMinus + 'px ' + iconMinus + 'px' });
-    }
+    zoomNew = map.getZoom();
+    var iconStep = Math.round((zoomNew-zoomDefault)*iconRate);
+    iconChange = iconSize + iconStep;
+    $('.myIcon>i').animate({ width: iconChange + 'px', height: iconChange + 'px', backgroudSize: iconChange + 'px ' + iconChange + 'px' });
 })
 
 //添加导航
@@ -171,10 +163,11 @@ $('.header').on('click','.sub>li>a',function(){
             }
         })
     })
+    infoBoxHide();
     infoBoxContent(item);
     menuHide();
-    infoBoxShow();
     map.setZoomAndCenter(19,new AMap.LngLat(item.lat,item.lng));
+    infoBoxShow();
 })
 
 //infoBox内容组装
